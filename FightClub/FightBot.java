@@ -1,6 +1,8 @@
 package FightClub;
 
+import FightClub.Extra.ActionMessage;
 import FightClub.Extra.Bot;
+import FightClub.Extra.HeritageMessage;
 import FightClub.Extra.InformationMessage;
 import robocode.*;
 
@@ -8,9 +10,18 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+/*
+TODO:
+Emotion Engine
+Movement
+Melee/Leader Behaviour
+Droid Behaviour
+ */
+
 public class FightBot extends TeamRobot {
 
     int role; // 0 if Leader, 1 if Melee
+    String leaderID; //current leader
     boolean critical; // If health is low
     Map<String, Bot> enemies;
     Map<String, Bot> friends;
@@ -29,6 +40,13 @@ public class FightBot extends TeamRobot {
             if (robotnum == 1) {
                 out.println("I'm a leader!");
                 role = 0; // FightBot1, leader!
+                leaderID = this.getName();
+                try {
+                    broadcastMessage(new HeritageMessage(this.getName()));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
             } else {
                 out.println("I'm a Melee!");
                 role = 1; // The rest are melee!
@@ -94,7 +112,6 @@ public class FightBot extends TeamRobot {
                 fire(1);
             }
         } else {
-            out.println("Not Killing a Teammate!");
             friends.put(event.getName(), new Bot(event.getEnergy(), 0, 0)); //TODO:Add target coordinate code
             InformationMessage infoMessage = new InformationMessage(this.getEnergy(), this.getX(), this.getY());
             try {
@@ -110,12 +127,21 @@ public class FightBot extends TeamRobot {
         out.println(event.getSender() + " sent me: " + event.getMessage());
         Object message = event.getMessage();
         String messageType = message.getClass().getCanonicalName();
+        //react depending on message type
         switch (messageType) {
             case ("FightClub.Extra.InformationMessage"): {
+                InformationMessage im = (InformationMessage) message;
+                if (im.getTargetName() != null) {
+                    enemies.put(im.getTargetName(), new Bot(im.getTargetEnergy(), im.getTargetX(), im.getTargetY()));
+                }
+                friends.put(event.getSender(), new Bot(im.getCurrentEnergy(), im.getX(), im.getY()));
             }
             case ("FightClub.Extra.HeritageMessage"): {
+                HeritageMessage hs = (HeritageMessage) message;
+                this.leaderID = hs.getNewLeader();
             }
             case ("FightClub.Extra.ActionMessage"): {
+                ActionMessage ac = (ActionMessage) message;
             }
 
         }
