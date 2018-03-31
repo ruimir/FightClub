@@ -8,13 +8,18 @@ import robocode.Droid;
 import robocode.MessageEvent;
 import robocode.TeamRobot;
 
+import static robocode.util.Utils.normalRelativeAngleDegrees;
+
 public class FightDroid extends TeamRobot implements Droid {
 
-    String leaderID; //current leader
+    private String leaderID; //current leader
 
     public void run() {
-
-
+        out.println("Annyong.");
+        while (true) {
+            this.ahead(100.0D);
+            this.back(100.0D);
+        }
     }
 
     public void onMessageReceived(MessageEvent event) {
@@ -22,18 +27,27 @@ public class FightDroid extends TeamRobot implements Droid {
         Object message = event.getMessage();
         String messageType = message.getClass().getCanonicalName();
         //react depending on message type
-        switch (messageType) {
-            case ("FightClub.Extra.InformationMessage"): {
-            }
-            case ("FightClub.Extra.HeritageMessage"): {
-                HeritageMessage hs = (HeritageMessage) message;
-                this.leaderID = hs.getNewLeader();
-            }
-            case ("FightClub.Extra.ActionMessage"): {
+        if (messageType.equals("FightClub.Extra.InformationMessage")) {
+            InformationMessage im = (InformationMessage) message;
+        } else if (messageType.equals("FightClub.Extra.HeritageMessage")) {
+            HeritageMessage hs = (HeritageMessage) message;
+            this.leaderID = hs.getNewLeader();
+        } else if (messageType.equals("FightClub.Extra.ActionMessage")) {
+            ActionMessage am = (ActionMessage) message;
+            double dx = am.getEnemyX() - this.getX();
+            double dy = am.getEnemyY() - this.getY();
+            // Calculate angle to target
+            double theta = Math.toDegrees(Math.atan2(dx, dy));
 
-            }
+            // Turn gun to target
+            turnGunRight(normalRelativeAngleDegrees(theta - getGunHeading()));
+            // Fire hard!
+            fire(3);
 
         }
 
+
     }
+
+
 }

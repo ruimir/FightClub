@@ -20,11 +20,11 @@ Droid Behaviour
 
 public class FightBot extends TeamRobot {
 
-    int role; // 0 if Leader, 1 if Melee
-    String leaderID; //current leader
-    boolean critical; // If health is low
-    Map<String, Bot> enemies;
-    Map<String, Bot> friends;
+    private int role; // 0 if Leader, 1 if Melee
+    private String leaderID; //current leader
+    private boolean critical; // If health is low
+    private Map<String, Bot> enemies;
+    private Map<String, Bot> friends;
 
 
     public void run() {
@@ -56,10 +56,14 @@ public class FightBot extends TeamRobot {
         while (true) {
             switch (role) {
                 case 0:
-                    scan();
+                    this.setTurnGunLeft(10000.0D);
+                    this.ahead(100.0D);
+                    this.back(100.0D);
 
                 case 1: {
-                    scan();
+                    this.setTurnGunLeft(10000.0D);
+                    this.ahead(100.0D);
+                    this.back(100.0D);
                 }
             }
         }
@@ -69,6 +73,7 @@ public class FightBot extends TeamRobot {
 
     public void onDeath(DeathEvent event) {
         out.println("DEAD.");
+        //Implement feedback features here
     }
 
     public void onHitByBullet(HitByBulletEvent event) {
@@ -85,6 +90,7 @@ public class FightBot extends TeamRobot {
     }
 
     public void onScannedRobot(ScannedRobotEvent event) {
+        //First step: check if robot scanned is friend or foe:
         String target = event.getName();
         String[] teammates = this.getTeammates();
         boolean isTeammate = false;
@@ -96,12 +102,24 @@ public class FightBot extends TeamRobot {
         }
         // Assuming radar and gun are aligned...
         if (!isTeammate) {
+            //ENEMY CODE
+            double angleToEnemy = event.getBearing();
 
-            enemies.put(event.getName(), new Bot(event.getEnergy(), 0, 0)); //TODO:Add target coordinate code
+            // Calculate the angle to the scanned robot
+            double angle = Math.toRadians((this.getHeading() + angleToEnemy % 360));
+
+            // Calculate the coordinates of the robot
+            double enemyX = (this.getX() + Math.sin(angle) * event.getDistance());
+            double enemyY = (this.getY() + Math.cos(angle) * event.getDistance());
+
+            enemies.put(event.getName(), new Bot(event.getEnergy(), enemyX, enemyY));
             //sending enemy information
-            InformationMessage infoMessage = new InformationMessage(this.getEnergy(), event.getEnergy(), event.getName(), this.getX(), this.getY(), 0, 0); // TODO:Add target coordinate code
+            InformationMessage infoMessage = new InformationMessage(this.getEnergy(), event.getEnergy(), event.getName(), this.getX(), this.getY(), enemyX, enemyY, true);
+            //TODO:BETA VERSION, EMOTION ENGINE NEEDS TO BE IMPLEMENTED:
+            ActionMessage actionMessage= new ActionMessage(enemyX,enemyY);
             try {
                 broadcastMessage(infoMessage);
+                broadcastMessage(actionMessage);
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -112,8 +130,18 @@ public class FightBot extends TeamRobot {
                 fire(1);
             }
         } else {
-            friends.put(event.getName(), new Bot(event.getEnergy(), 0, 0)); //TODO:Add target coordinate code
-            InformationMessage infoMessage = new InformationMessage(this.getEnergy(), this.getX(), this.getY());
+            //FRIEND CODE
+            double angleToEnemy = event.getBearing();
+
+            // Calculate the angle to the scanned robot
+            double angle = Math.toRadians((this.getHeading() + angleToEnemy % 360));
+
+            // Calculate the coordinates of the robot
+            double friendX = (this.getX() + Math.sin(angle) * event.getDistance());
+            double friendY = (this.getY() + Math.cos(angle) * event.getDistance());
+
+            friends.put(event.getName(), new Bot(event.getEnergy(), friendX, friendY));
+            InformationMessage infoMessage = new InformationMessage(this.getEnergy(), event.getEnergy(), event.getName(), this.getX(), this.getY(), friendX, friendY, false);
             try {
                 broadcastMessage(infoMessage);
             } catch (IOException e) {
@@ -128,25 +156,42 @@ public class FightBot extends TeamRobot {
         Object message = event.getMessage();
         String messageType = message.getClass().getCanonicalName();
         //react depending on message type
-        switch (messageType) {
-            case ("FightClub.Extra.InformationMessage"): {
-                InformationMessage im = (InformationMessage) message;
-                if (im.getTargetName() != null) {
-                    enemies.put(im.getTargetName(), new Bot(im.getTargetEnergy(), im.getTargetX(), im.getTargetY()));
-                }
-                friends.put(event.getSender(), new Bot(im.getCurrentEnergy(), im.getX(), im.getY()));
+        if (messageType.equals("FightClub.Extra.InformationMessage")) {
+            InformationMessage im = (InformationMessage) message;
+            if (im.isEnemy()) {
+                //Scanned bot is a enemy:
+                enemies.put(im.getTargetName(), new Bot(im.getTargetEnergy(), im.getTargetX(), im.getTargetY()));
+            } else {
+                //Scanned bot is a friend
+                friends.put(im.getTargetName(), new Bot(im.getTargetEnergy(), im.getTargetX(), im.getTargetY()));
             }
-            case ("FightClub.Extra.HeritageMessage"): {
-                HeritageMessage hs = (HeritageMessage) message;
-                this.leaderID = hs.getNewLeader();
-            }
-            case ("FightClub.Extra.ActionMessage"): {
-                ActionMessage ac = (ActionMessage) message;
-            }
+            //Updating info about sender:
+            friends.put(event.getSender(), new Bot(im.getCurrentEnergy(), im.getX(), im.getY()));
 
+        } else if (messageType.equals("FightClub.Extra.HeritageMessage")) {
+            HeritageMessage hs = (HeritageMessage) message;
+            this.leaderID = hs.getNewLeader();
+            if (hs.getNewLeader().equals(this.getName())) {
+                role = 1;
+                out.println("I'm the boss now!");
+            }
+        } else if (messageType.equals("FightClub.Extra.ActionMessage")) {
         }
 
+
     }
+
+    // Go to GPS position (x,y)
+    private void gotoXY(double x, double y) {
+        double dx = x - getX();
+        double dy = y - getY();
+        double turnDegrees;
+
+        // Determine how much to turn
+        turnDegrees = (Math.toDegrees(Math.atan2(dx, dy)) - getHeading()) % 360;
+        turnRight(turnDegrees);
+        ahead(Math.sqrt(dx * dx + dy * dy));
+    } // end gotoXY()
 
 
 }
