@@ -1,14 +1,18 @@
 package FightClub;
 
-import FightClub.Extra.ActionMessage;
-import FightClub.Extra.Bot;
-import FightClub.Extra.HeritageMessage;
-import FightClub.Extra.InformationMessage;
+import FightClub.Extra.*;
 import robocode.*;
 
+import java.awt.geom.Point2D;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.concurrent.ThreadLocalRandom;
+import java.awt.Color;
+import java.awt.Graphics2D;
+
 
 /*
 TODO:
@@ -25,10 +29,21 @@ public class FightBot extends TeamRobot {
     private boolean critical; // If health is low
     private Map<String, Bot> enemies;
     private Map<String, Bot> friends;
+    private EnemyDodgingMovement edm;
+
+    //VARS for Leader:
+    double O, C, E, A, N;
+    double pleasure, arousal, dominance;
+    int emotion; //Carly Rae Jepsen's Iconic Album!
+    //Joy=1
+    //Pride=2
+    //Fear=3
+    //Anger=4
 
 
     public void run() {
         critical = false;
+        edm = new EnemyDodgingMovement(this);
         enemies = new HashMap<>();
         friends = new HashMap<>();
         String intValue = this.getName().replaceAll("[^0-9]", ""); // Extract integer from name
@@ -46,6 +61,8 @@ public class FightBot extends TeamRobot {
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
+                //All that we could do with this emotion...
+                prepareEmotion();
 
             } else {
                 out.println("I'm a Melee!");
@@ -54,16 +71,35 @@ public class FightBot extends TeamRobot {
         }
 
         while (true) {
+            ArrayList<Point2D.Double> enemyPoints = new ArrayList<>();
+            Iterator<Bot> it = enemies.values().iterator();
+            Point2D.Double point;
             switch (role) {
                 case 0:
-                    this.setTurnGunLeft(10000.0D);
-                    this.ahead(100.0D);
-                    this.back(100.0D);
 
+                    while (it.hasNext()) {
+                        Bot bot = it.next();
+                        enemyPoints.add(new Point2D.Double(bot.getX(), bot.getY()));
+                    }
+                    out.println(enemyPoints.size());
+                    point = edm.getDestination(enemyPoints);
+                    if (point != null) {
+                        gotoXY(point.x, point.y);
+                    } else {
+                        turnRight(45);
+                    }
                 case 1: {
-                    this.setTurnGunLeft(10000.0D);
-                    this.ahead(100.0D);
-                    this.back(100.0D);
+
+                    while (it.hasNext()) {
+                        Bot bot = it.next();
+                        enemyPoints.add(new Point2D.Double(bot.getX(), bot.getY()));
+                    }
+                    point = edm.getDestination(enemyPoints);
+                    if (point != null) {
+                        gotoXY(point.x, point.y);
+                    } else {
+                        turnRight(45);
+                    }
                 }
             }
         }
@@ -116,7 +152,7 @@ public class FightBot extends TeamRobot {
             //sending enemy information
             InformationMessage infoMessage = new InformationMessage(this.getEnergy(), event.getEnergy(), event.getName(), this.getX(), this.getY(), enemyX, enemyY, true);
             //TODO:BETA VERSION, EMOTION ENGINE NEEDS TO BE IMPLEMENTED:
-            ActionMessage actionMessage= new ActionMessage(enemyX,enemyY);
+            ActionMessage actionMessage = new ActionMessage(enemyX, enemyY);
             try {
                 broadcastMessage(infoMessage);
                 broadcastMessage(actionMessage);
@@ -150,6 +186,26 @@ public class FightBot extends TeamRobot {
         }
     }
 
+    public void prepareEmotion() {
+        O = ThreadLocalRandom.current().nextDouble(-1, 1);
+        C = ThreadLocalRandom.current().nextDouble(-1, 1);
+        E = ThreadLocalRandom.current().nextDouble(-1, 1);
+        A = ThreadLocalRandom.current().nextDouble(-1, 1);
+        N = ThreadLocalRandom.current().nextDouble(-1, 1);
+        pleasure = 0.59 * A + 0.19 * N + 0.21 * E;
+        arousal = 0.57 * N + 0.30 * A + 0.15 * O;
+        dominance = 0.60 * N + 0.32 * A + 0.25 * O;
+        //Define emotion from
+        if (pleasure < -0.4) {
+            if (dominance < 0.2) {
+                emotion = 1;
+            } else emotion = 2;
+        } else if (pleasure >= -0.4) {
+            if (dominance > 0) {
+                emotion = 3;
+            } else emotion = 4;
+        }
+    }
 
     public void onMessageReceived(MessageEvent event) {
         out.println(event.getSender() + " sent me: " + event.getMessage());
@@ -181,6 +237,7 @@ public class FightBot extends TeamRobot {
 
     }
 
+
     // Go to GPS position (x,y)
     private void gotoXY(double x, double y) {
         double dx = x - getX();
@@ -192,6 +249,20 @@ public class FightBot extends TeamRobot {
         turnRight(turnDegrees);
         ahead(Math.sqrt(dx * dx + dy * dy));
     } // end gotoXY()
+
+
+    public void onPaint(Graphics2D g) {
+        ArrayList<Point2D.Double> enemyPoints = new ArrayList<>();
+        Iterator<Bot> it = enemies.values().iterator();
+        while (it.hasNext()) {
+            Bot bot = it.next();
+            enemyPoints.add(new Point2D.Double(bot.getX(), bot.getY()));
+        }
+        out.println(enemyPoints.size());
+        edm.paint(g,enemyPoints);
+
+
+    }
 
 
 }
