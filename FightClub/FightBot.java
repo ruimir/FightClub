@@ -81,7 +81,6 @@ public class FightBot extends TeamRobot {
                         Bot bot = it.next();
                         enemyPoints.add(new Point2D.Double(bot.getX(), bot.getY()));
                     }
-                    out.println(enemyPoints.size());
                     point = edm.getDestination(enemyPoints);
                     if (point != null) {
                         gotoXY(point.x, point.y);
@@ -114,15 +113,16 @@ public class FightBot extends TeamRobot {
 
     public void onHitByBullet(HitByBulletEvent event) {
         double energy = this.getEnergy();
-        out.println(energy);
-        if (energy <= 20 && !critical) {
+        if (energy <= 20 && !critical && role == 0) {
             critical = true;
             try {
-                broadcastMessage(this.getName() + "has low health.");
+                //TODO:Acknowledgment
+                broadcastMessage(new HeritageMessage("FightClub.FightBot* (2)"));
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }
+        setBack(400);
     }
 
     public void onScannedRobot(ScannedRobotEvent event) {
@@ -152,13 +152,18 @@ public class FightBot extends TeamRobot {
             //sending enemy information
             InformationMessage infoMessage = new InformationMessage(this.getEnergy(), event.getEnergy(), event.getName(), this.getX(), this.getY(), enemyX, enemyY, true);
             //TODO:BETA VERSION, EMOTION ENGINE NEEDS TO BE IMPLEMENTED:
-            ActionMessage actionMessage = new ActionMessage(enemyX, enemyY);
+            ActionMessage actionMessage = new ActionMessage(enemyX, enemyY, event.getBearingRadians(), event.getDistance());
             try {
                 broadcastMessage(infoMessage);
                 broadcastMessage(actionMessage);
             } catch (IOException e) {
                 e.printStackTrace();
             }
+
+            double absoluteBearing = getHeadingRadians() + event.getBearingRadians();
+            setTurnGunRightRadians(
+                    robocode.util.Utils.normalRelativeAngle(absoluteBearing -
+                            getGunHeadingRadians()));
 
             if (event.getDistance() < 100) {
                 fire(3);
@@ -208,7 +213,7 @@ public class FightBot extends TeamRobot {
     }
 
     public void onMessageReceived(MessageEvent event) {
-        out.println(event.getSender() + " sent me: " + event.getMessage());
+        //out.println(event.getSender() + " sent me: " + event.getMessage());
         Object message = event.getMessage();
         String messageType = message.getClass().getCanonicalName();
         //react depending on message type
@@ -258,8 +263,7 @@ public class FightBot extends TeamRobot {
             Bot bot = it.next();
             enemyPoints.add(new Point2D.Double(bot.getX(), bot.getY()));
         }
-        out.println(enemyPoints.size());
-        edm.paint(g,enemyPoints);
+        edm.paint(g, enemyPoints);
 
 
     }

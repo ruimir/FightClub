@@ -14,9 +14,9 @@ import static java.lang.System.out;
 
 public class EnemyDodgingMovement {
 
-    private static final int ACTIVITY_AREA_MARGIN = 30;
-    private static final int FIELD_OF_VISION = 60;
-    private static final int DANGER_DISTANCE = FIELD_OF_VISION * 4;
+    private static final int ACTIVITY_AREA_MARGIN = 40;
+    private static final int FIELD_OF_VISION = 50;
+    private static final int DANGER_DISTANCE = FIELD_OF_VISION * 3;
 
     private final Robot robot;
     private final Rectangle activityArea;
