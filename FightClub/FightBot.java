@@ -137,7 +137,8 @@ public class FightBot extends TeamRobot {
                 e.printStackTrace();
             }
         }
-        setBack(400);
+        setAhead(400);
+        setTurnLeft(20);
     }
 
     public void onScannedRobot(ScannedRobotEvent event) {
@@ -173,19 +174,19 @@ public class FightBot extends TeamRobot {
                 if (emotionEngine.getEmotion() == 1) {
                     //joy
                     out.println("Joy");
-                    actionMessage = new ActionMessage(enemyX, enemyY, event.getBearingRadians(), event.getDistance(), 1);
+                    actionMessage = new ActionMessage(enemyX, enemyY, event.getBearingRadians(), event.getDistance(), 0);
                 } else if (emotionEngine.getEmotion() == 2) {
                     //pride
                     out.println("Pride");
-                    actionMessage = new ActionMessage(enemyX, enemyY, event.getBearingRadians(), event.getDistance(), 3);
+                    actionMessage = new ActionMessage(enemyX, enemyY, event.getBearingRadians(), event.getDistance(), 2);
                 } else if (emotionEngine.getEmotion() == 3) {
                     //fear
                     out.println("Fear");
-                    actionMessage = new ActionMessage(enemyX, enemyY, event.getBearingRadians(), event.getDistance(), 3);
+                    actionMessage = new ActionMessage(enemyX, enemyY, event.getBearingRadians(), event.getDistance(), 0);
                 } else if (emotionEngine.getEmotion() == 4) {
                     //anger
                     out.println("Anger");
-                    actionMessage = new ActionMessage(enemyX, enemyY, event.getBearingRadians(), event.getDistance(), 3);
+                    actionMessage = new ActionMessage(enemyX, enemyY, event.getBearingRadians(), event.getDistance(), 1);
                 } else {
                     actionMessage = new ActionMessage(enemyX, enemyY, event.getBearingRadians(), event.getDistance(), 1);
                 }

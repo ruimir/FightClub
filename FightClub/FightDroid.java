@@ -101,7 +101,10 @@ public class FightDroid extends TeamRobot implements Droid {
                     pointAndShoot(am.getEnemyX(), am.getEnemyY());
                 }
                 case 1: {
-                    kamikazeMode(am.getEnemyX(), am.getEnemyY());
+                    if (this.getEnergy() >= 150) {
+                        kamikazeMode(am.getEnemyX(), am.getEnemyY());
+                    } else pointAndShoot(am.getEnemyX(), am.getEnemyY());
+
                 }
                 case 2: {
                     crazyMode(am.getEnemyX(), am.getEnemyY());
