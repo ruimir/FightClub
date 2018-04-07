@@ -98,19 +98,18 @@ public class FightDroid extends TeamRobot implements Droid {
             ActionMessage am = (ActionMessage) message;
             switch (am.getAttackMode()) {
                 case 0: {
+                    pointAndShoot(am.getEnemyX(), am.getEnemyY());
                 }
                 case 1: {
+                    kamikazeMode(am.getEnemyX(), am.getEnemyY());
                 }
                 case 2: {
+                    crazyMode(am.getEnemyX(), am.getEnemyY());
                 }
                 default: {
+                    pointAndShoot(am.getEnemyX(), am.getEnemyY());
                 }
             }
-            //TODO: remove this and add to switch
-            //crazyMode(am.getEnemyX(), am.getEnemyY());
-            if (this.getEnergy() > 150) {
-                kamikazeMode(am.getEnemyX(), am.getEnemyY());
-            } else pointAndShoot(am.getEnemyX(), am.getEnemyY());
 
 
         }
@@ -172,7 +171,7 @@ public class FightDroid extends TeamRobot implements Droid {
 
 
     private void kamikazeMode(double X, double Y) {
-        out.println("kami on");
+        out.println("Kamikaze Mode ONLINE");
         gotoXY(X, Y);
         double dx = X - this.getX();
         double dy = Y - this.getY();
@@ -186,7 +185,7 @@ public class FightDroid extends TeamRobot implements Droid {
         for (int i = 0; i < 10; i++) {
             fire(3);
         }
-        out.println("kami off");
+        out.println("I hope I made my country proud!");
 
 
     }
@@ -207,6 +206,28 @@ public class FightDroid extends TeamRobot implements Droid {
         if (this.isTeammate(event.getName()) || event.getEnergy() < 20) {
             enemyAlive = false;
         }
+        setAhead(40000);
+        movingForward = true;
+        // Tell the game we will want to turn right 90
+        setTurnRight(90);
+        ArrayList<Point2D.Double> enemyPoints = new ArrayList<>();
+        Iterator<Bot> it = enemies.values().iterator();
+        Point2D.Double point;
+
+        while (it.hasNext()) {
+            Bot bot = it.next();
+            enemyPoints.add(new Point2D.Double(bot.getX(), bot.getY()));
+        }
+        point = edm.getDestination(enemyPoints);
+        if (point != null) {
+            gotoXY(point.x, point.y);
+        } else {
+            setAhead(200);
+            setTurnRight(90);
+            waitFor(new TurnCompleteCondition(this));
+        }
+
+
     }
 
 

@@ -30,15 +30,7 @@ public class FightBot extends TeamRobot {
     private Map<String, Bot> enemies;
     private Map<String, Bot> friends;
     private EnemyDodgingMovement edm;
-
-    //VARS for Leader:
-    double O, C, E, A, N;
-    double pleasure, arousal, dominance;
-    int emotion; //Carly Rae Jepsen's Iconic Album!
-    //Joy=1
-    //Pride=2
-    //Fear=3
-    //Anger=4
+    private static EmotionEngine emotionEngine;
 
 
     public void run() {
@@ -62,7 +54,14 @@ public class FightBot extends TeamRobot {
                     e.printStackTrace();
                 }
                 //All that we could do with this emotion...
-                prepareEmotion();
+                double O = ThreadLocalRandom.current().nextDouble(-1, 1);
+                double C = ThreadLocalRandom.current().nextDouble(-1, 1);
+                double E = ThreadLocalRandom.current().nextDouble(-1, 1);
+                double A = ThreadLocalRandom.current().nextDouble(-1, 1);
+                double N = ThreadLocalRandom.current().nextDouble(-1, 1);
+                if (emotionEngine == null) {
+                    emotionEngine = new EmotionEngine(O, C, E, A, N);
+                }
 
             } else {
                 out.println("I'm a Melee!");
@@ -106,13 +105,29 @@ public class FightBot extends TeamRobot {
 
     }
 
+    public void onWin(WinEvent event) {
+        if (role == 0) {
+            emotionEngine.modifyP(1);
+            emotionEngine.modifyD(1);
+            emotionEngine.modifyA(1);
+        }
+
+    }
+
     public void onDeath(DeathEvent event) {
         out.println("DEAD.");
+        if (role == 0) {
+            emotionEngine.modifyD(-0.3);
+            emotionEngine.modifyP(-0.3);
+        }
         //Implement feedback features here
     }
 
     public void onHitByBullet(HitByBulletEvent event) {
         double energy = this.getEnergy();
+        if (role == 0) {
+            emotionEngine.modifyP(-0.01);
+        }
         if (energy <= 20 && !critical && role == 0) {
             critical = true;
             try {
@@ -152,10 +167,38 @@ public class FightBot extends TeamRobot {
             //sending enemy information
             InformationMessage infoMessage = new InformationMessage(this.getEnergy(), event.getEnergy(), event.getName(), this.getX(), this.getY(), enemyX, enemyY, true);
             //TODO:BETA VERSION, EMOTION ENGINE NEEDS TO BE IMPLEMENTED:
-            ActionMessage actionMessage = new ActionMessage(enemyX, enemyY, event.getBearingRadians(), event.getDistance());
+            if (role == 0) {
+                ActionMessage actionMessage;
+
+                if (emotionEngine.getEmotion() == 1) {
+                    //joy
+                    out.println("Joy");
+                    actionMessage = new ActionMessage(enemyX, enemyY, event.getBearingRadians(), event.getDistance(), 1);
+                } else if (emotionEngine.getEmotion() == 2) {
+                    //pride
+                    out.println("Pride");
+                    actionMessage = new ActionMessage(enemyX, enemyY, event.getBearingRadians(), event.getDistance(), 3);
+                } else if (emotionEngine.getEmotion() == 3) {
+                    //fear
+                    out.println("Fear");
+                    actionMessage = new ActionMessage(enemyX, enemyY, event.getBearingRadians(), event.getDistance(), 3);
+                } else if (emotionEngine.getEmotion() == 4) {
+                    //anger
+                    out.println("Anger");
+                    actionMessage = new ActionMessage(enemyX, enemyY, event.getBearingRadians(), event.getDistance(), 3);
+                } else {
+                    actionMessage = new ActionMessage(enemyX, enemyY, event.getBearingRadians(), event.getDistance(), 1);
+                }
+
+                try {
+                    broadcastMessage(actionMessage);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+            }
             try {
                 broadcastMessage(infoMessage);
-                broadcastMessage(actionMessage);
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -191,26 +234,6 @@ public class FightBot extends TeamRobot {
         }
     }
 
-    public void prepareEmotion() {
-        O = ThreadLocalRandom.current().nextDouble(-1, 1);
-        C = ThreadLocalRandom.current().nextDouble(-1, 1);
-        E = ThreadLocalRandom.current().nextDouble(-1, 1);
-        A = ThreadLocalRandom.current().nextDouble(-1, 1);
-        N = ThreadLocalRandom.current().nextDouble(-1, 1);
-        pleasure = 0.59 * A + 0.19 * N + 0.21 * E;
-        arousal = 0.57 * N + 0.30 * A + 0.15 * O;
-        dominance = 0.60 * N + 0.32 * A + 0.25 * O;
-        //Define emotion from
-        if (pleasure < -0.4) {
-            if (dominance < 0.2) {
-                emotion = 1;
-            } else emotion = 2;
-        } else if (pleasure >= -0.4) {
-            if (dominance > 0) {
-                emotion = 3;
-            } else emotion = 4;
-        }
-    }
 
     public void onMessageReceived(MessageEvent event) {
         //out.println(event.getSender() + " sent me: " + event.getMessage());
@@ -240,6 +263,17 @@ public class FightBot extends TeamRobot {
         }
 
 
+    }
+
+    public void onBulletHit(BulletHitEvent event) {
+        if (!this.isTeammate(event.getName())) {
+            if (role == 0) {
+                emotionEngine.modifyP(0.4);
+            }
+            setAhead(100);
+            waitFor(new TurnCompleteCondition(this));
+
+        }
     }
 
 
